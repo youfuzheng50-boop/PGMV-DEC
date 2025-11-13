@@ -1,0 +1,54 @@
+data_arguments:
+  data_dir: /home/idao/Zyf/data/new_data
+  data_dir_key: source
+  label_dict:
+    J: 0
+    N: 1
+    T: 2
+    Z: 3
+  preset: /home/idao/Zyf/models/PGMV-DEC/heatmaps/bwh_oc.csv
+  process_list: heatmap_demo_dataset.csv
+  slide_ext: .svs
+encoder_arguments:
+  model_name: resnet50_trunc
+  target_img_size: 224
+exp_arguments:
+  batch_size: 224
+  n_classes: 4
+  production_save_dir: heatmaps/heatmap_production_results
+  raw_save_dir: heatmaps/heatmap_raw_results
+  save_exp_code: HEATMAP_OUTPUT
+heatmap_arguments:
+  alpha: 0.5
+  binarize: true
+  binary_thresh: 0.5
+  blank_canvas: false
+  blur: true
+  calc_heatmap: false
+  cmap: jet
+  custom_downsample: 1
+  save_ext: jpg
+  save_orig: true
+  use_center_shift: true
+  use_ref_scores: false
+  use_roi: false
+  vis_level: -1
+model_arguments:
+  ckpt_path: heatmaps/demo/ckpts/s_1_checkpoint.pt
+  drop_out: 0.0
+  embed_dim: 1024
+  initiate_fn: initiate_model
+  model_size: small
+  model_type: clam_sb
+patching_arguments:
+  custom_downsample: 1
+  overlap: 0.5
+  patch_level: 0
+  patch_size: 256
+sample_arguments:
+  samples:
+  - k: 15
+    mode: topk
+    name: topk_high_attention
+    sample: true
+    seed: 1
