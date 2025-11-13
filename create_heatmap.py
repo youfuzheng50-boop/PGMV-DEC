@@ -11,7 +11,7 @@ import yaml
 from tqdm import tqdm
 from types import SimpleNamespace
 from collections import namedtuple
-# 假设这些工具函数已被正确导入或在 utils 目录下
+
 from utils.utils import*
 from utils.eval_utils import initiate_model
 from models.MLP import FiveClassClassifier, DiscriminativeAutoencoder
@@ -20,7 +20,7 @@ from wsi_core.batch_process_utils import initialize_df
 from vis_utils.heatmap_utils import initialize_wsi, drawHeatmap, compute_from_patches
 from utils.file_utils import save_hdf5
 
-# --- 命令行参数解析 ---
+
 parser = argparse.ArgumentParser(description='Heatmap inference script')
 parser.add_argument('--save_exp_code', type=str, default=None,
                     help='experiment code')
@@ -30,7 +30,7 @@ args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# --- 简化模型推理函数 ---
+
 def infer_single_slide(model, features, label, reverse_label_dict, model_type):
     """根据模型类型进行推理，并返回每个patch的预测类别（Y_hat）或相似度分数（Y_prob）。"""
     features = features.to(device)
@@ -53,9 +53,9 @@ def infer_single_slide(model, features, label, reverse_label_dict, model_type):
         return Y_prob
 
 
-# --- 配置加载函数 (保持不变) ---
+
 def load_params(df_entry, params):
-    # 保持原有的复杂加载逻辑，但移除了 pdb
+
     for key in params.keys():
         if key in df_entry.index:
             dtype = type(params[key])
@@ -83,21 +83,21 @@ def parse_config_dict(args, config_dict):
     return config_dict
 
 
-# --- 主执行块 ---
+
 if __name__ == '__main__':
-    # --- 1. 配置加载与模型初始化 ---
+
     config_path = os.path.join('heatmaps/configs', args.config_file)
     with open(config_path, 'r') as f:
         config_dict = yaml.safe_load(f)
 
     config_dict = parse_config_dict(args, config_dict)
 
-    # 将模型类型配置化，以防未来变动
+
     model_type = '聚类结果'  # 你的特定设置
     num_classes = 5
     input_dim, latent_dim = 1024, 64
 
-    # 简化模型加载
+
     model = None
     if model_type == 'MLP':
         model = FiveClassClassifier(input_dim=1024, num_classes=num_classes)
@@ -106,18 +106,17 @@ if __name__ == '__main__':
         model = DiscriminativeAutoencoder(input_dim, latent_dim, num_classes)
         model.load_state_dict(
             torch.load('/home/idao/Zyf/models/oc_subtype_classficter/Autoencoder/fold1/区分自编码器.pth'))
-        # # 即使模型不用于推理，也需要加载它，因为它可能被 compute_from_patches 调用
-        # model = FiveClassClassifier(input_dim=1024, num_classes=num_classes)
-        # model.load_state_dict(
-        #     torch.load('/home/idao/Zyf/models/oc_subtype_classficter/multi_view/samples_k3/fiveClassifier_100.pth'))
-    else:
-        # 如果不是以上类型，仍需要初始化一个模型实例
-        model = DiscriminativeAutoencoder(input_dim, latent_dim, num_classes)
 
+        model = DiscriminativeAutoencoder(input_dim, latent_dim, num_classes)
+    elif model_type == '聚类结果':
+        # 即使模型不用于推理，也需要加载它，因为它可能被 compute_from_patches 调用
+        model = FiveClassClassifier(input_dim=1024, num_classes=num_classes)
+        model.load_state_dict(
+            torch.load('/home/idao/Zyf/models/oc_subtype_classficter/multi_view/samples_k3/fiveClassifier_100.pth'))
     model.to(device)
     model.eval()  # 确保模型处于评估模式
 
-    # 打印配置 (简化)
+    # 打印配置
     print("--- 配置参数 ---")
     for key, value in config_dict.items():
         if isinstance(value, dict):
@@ -127,8 +126,6 @@ if __name__ == '__main__':
         else:
             print(f"\n{key} : {value}")
 
-    # --- 2. 参数命名空间化 ---
-    # 简化 argparse.Namespace 的创建过程
     args_ns = SimpleNamespace(**config_dict)
 
     # 确保子字典也被转换为 SimpleNamespace 以方便访问
@@ -143,18 +140,18 @@ if __name__ == '__main__':
     # 更新 model_args 中的 n_classes
     model_args.n_classes = exp_args.n_classes
 
-    # --- 3. 路径和尺寸定义 ---
-    # 优化：集中路径和尺寸定义
+    # 路径和尺寸定义
+
     PT_BASE_DIR = '/home/idao/Zyf/data/oc_features/FEATURES_DIRECTORY/pt_files'
     H5_BASE_DIR = '/home/idao/Zyf/data/oc_features/FEATURES_DIRECTORY/h5_files'
-    SIM_BASE_DIR = 'heatmaps/sim'  # 新增：注意力分数的基础路径
+    SIM_BASE_DIR = 'heatmaps/sim'  # 注意力分数的基础路径
 
     patch_size = (patch_args.patch_size, patch_args.patch_size)
     step_size = tuple((np.array(patch_size) * (1 - patch_args.overlap)).astype(int))
     print(
         f'patch_size: {patch_size[0]} x {patch_size[1]}, with {patch_args.overlap:.2f} overlap, step size is {step_size[0]} x {step_size[1]}')
 
-    # --- 4. 默认参数和数据帧初始化 ---
+    # 默认参数和数据帧初始化
     def_seg_params = {'seg_level': -1, 'sthresh': 15, 'mthresh': 11, 'close': 2, 'use_otsu': False, 'keep_ids': 'none',
                       'exclude_ids': 'none'}
     def_filter_params = {'a_t': 50.0, 'a_h': 8.0, 'max_n_holes': 10}
@@ -170,7 +167,7 @@ if __name__ == '__main__':
 
     # 初始化处理数据帧
     if data_args.process_list is None:
-        # 简化 slide 列表生成
+
         data_dirs = data_args.data_dir if isinstance(data_args.data_dir, list) else [data_args.data_dir]
         slides = [slide for data_dir in data_dirs for slide in os.listdir(data_dir) if data_args.slide_ext in slide]
         df = initialize_df(slides, def_seg_params, def_filter_params, def_vis_params, def_patch_params,
@@ -184,24 +181,24 @@ if __name__ == '__main__':
     print(f'\nlist of slides to process (total: {len(process_stack)}): ')
     print(process_stack.head(len(process_stack)))
 
-    # --- 5. 特征提取器初始化 ---
+    # 特征提取器初始化 ---
     print('\nInitializing feature extractor')
     feature_extractor, img_transforms = ht_get_encoder(encoder_args.model_name,
                                                        target_img_size=encoder_args.target_img_size)
     feature_extractor.eval().to(device)
     print('Done!')
 
-    # --- 6. 标签字典 ---
+    # 标签字典 ---
     label_dict = data_args.label_dict
     class_labels = list(label_dict.keys())
     class_encodings = list(label_dict.values())
     reverse_label_dict = {class_encodings[i]: class_labels[i] for i in range(len(class_labels))}
 
-    # --- 7. 目录创建 ---
+    # 目录创建 ---
     os.makedirs(exp_args.production_save_dir, exist_ok=True)
     os.makedirs(exp_args.raw_save_dir, exist_ok=True)
 
-    # --- 8. WSI 循环处理 ---
+    # WSI 循环处理 ---
     for i in tqdm(range(len(process_stack)), desc="Processing Slides"):
         row = process_stack.loc[i]
         slide_name = row['slide_id']
@@ -277,11 +274,9 @@ if __name__ == '__main__':
         mask.save(mask_path)
         wsi_object.saveSegmentation(mask_file)
 
-        # --- 核心文件路径 ---
         features_path = os.path.join(PT_BASE_DIR, slide_id + '.pt')
         h5_path = os.path.join(H5_BASE_DIR, slide_id + '.h5')
 
-        # 检查 H5 和 PT 文件，并进行转换（保留原逻辑）
         if not os.path.isfile(features_path) and os.path.isfile(h5_path):
             with h5py.File(h5_path, "r") as file:
                 features = torch.tensor(file['features'][:])
@@ -291,9 +286,8 @@ if __name__ == '__main__':
         features = torch.load(features_path, weights_only=True)
         process_stack.loc[i, 'bag_size'] = len(features)
 
-        # --- 9. 动态加载或计算注意力分数 (Y_hats) ---
+
         if model_type == '聚类结果':
-            # ***关键更改***：根据 slide_id 动态加载 sim.npy 文件
             sim_path = os.path.join(SIM_BASE_DIR, f"sim_{slide_id}.npy")
             if not os.path.isfile(sim_path):
                 print(f"警告：未找到聚类结果文件 {sim_path}，跳过此 WSI。")
@@ -301,7 +295,6 @@ if __name__ == '__main__':
                 continue
 
             Y_hats_all = np.load(sim_path)
-            # 根据您前面的代码，假设您需要第二个簇（索引 1）的相似度的负值
             Y_hats = -Y_hats_all[:, 1]
             Y_hats = Y_hats.reshape(-1, 1)  # 确保维度正确
         else:
@@ -310,7 +303,6 @@ if __name__ == '__main__':
 
         del features
 
-        # --- 10. 处理坐标和保存 block map ---
         if not os.path.isfile(block_map_save_path):
             with h5py.File(h5_path, "r") as file:
                 coords = file['coords'][:]
@@ -332,17 +324,13 @@ if __name__ == '__main__':
             scores = file['attention_scores'][:]
             coords = file['coords'][:]
 
-        # 采样逻辑（已注释，保持原样）
-        # ... (sample_rois 块)
-
-        # --- 11. 绘制 Block Map (原始粗略热图) ---
         wsi_kwargs = {'top_left': top_left, 'bot_right': bot_right, 'patch_size': patch_size, 'step_size': step_size,
                       'custom_downsample': patch_args.custom_downsample, 'level': patch_args.patch_level,
                       'use_center_shift': heatmap_args.use_center_shift}
 
         heatmap_raw_save_path = os.path.join(r_slide_save_dir, f'{slide_id}_blockmap.png')
         if not os.path.isfile(heatmap_raw_save_path):
-            # 注意：这里的 drawHeatmap 缺少第一个参数，可能是旧版本接口。已根据调用上下文补全。
+
             if model_type=="MLP":
                 heatmap = drawHeatmap(model_type, scores, coords, slide_path, wsi_object=wsi_object,
                                   alpha=heatmap_args.alpha, use_holes=True,
@@ -356,7 +344,6 @@ if __name__ == '__main__':
             heatmap.save(heatmap_raw_save_path)
             del heatmap
 
-        # --- 12. 绘制最终精细热图 (可选：需要 compute_from_patches) ---
         save_path = os.path.join(r_slide_save_dir, f'{slide_id}_{patch_args.overlap}_roi_{heatmap_args.use_roi}.h5')
 
         ref_scores = scores if heatmap_args.use_ref_scores else None
@@ -372,7 +359,7 @@ if __name__ == '__main__':
         # 检查并加载精细热图分数
         if not os.path.isfile(save_path):
             print(f'heatmap {save_path} not found.')
-            # 尝试加载全图热图作为备用
+
             if heatmap_args.use_roi:
                 save_path_full = os.path.join(r_slide_save_dir, f'{slide_id}_{patch_args.overlap}_roi_False.h5')
                 if os.path.isfile(save_path_full):
@@ -403,10 +390,10 @@ if __name__ == '__main__':
         heatmap_final_save_path = os.path.join(p_slide_save_dir, heatmap_save_name)
 
         if not os.path.isfile(heatmap_final_save_path):
-            # 注意：这里的 drawHeatmap 缺少第一个参数，可能是旧版本接口。已根据调用上下文补全。
+
             heatmap = drawHeatmap(model_type, scores, coords, slide_path, wsi_object=wsi_object,
                                   cmap=heatmap_args.cmap, alpha=heatmap_args.alpha, **heatmap_vis_args,
-                                  binarize=heatmap_args.binarize,  # 修复：这里应该是 binarize=heatmap_args.binarize
+                                  binarize=heatmap_args.binarize,
                                   blank_canvas=heatmap_args.blank_canvas,
                                   thresh=heatmap_args.binary_thresh, patch_size=vis_patch_size,
                                   overlap=patch_args.overlap, top_left=top_left, bot_right=bot_right)
@@ -414,7 +401,7 @@ if __name__ == '__main__':
             save_kwargs = {'quality': 100} if heatmap_args.save_ext == 'jpg' else {}
             heatmap.save(heatmap_final_save_path, **save_kwargs)
 
-        # --- 13. 保存原始 WSI 图像 ---
+        # 保存原始 WSI 图像 ---
         if heatmap_args.save_orig:
             vis_level = heatmap_args.vis_level if heatmap_args.vis_level >= 0 else vis_params['vis_level']
             heatmap_save_name = f'{slide_id}_orig_{int(vis_level)}.{heatmap_args.save_ext}'
@@ -426,6 +413,6 @@ if __name__ == '__main__':
                 save_kwargs = {'quality': 100} if heatmap_args.save_ext == 'jpg' else {}
                 heatmap.save(heatmap_orig_save_path, **save_kwargs)
 
-    # --- 14. 结束：保存配置 ---
+    # 结束：保存配置 ---
     with open(os.path.join(exp_args.raw_save_dir, exp_args.save_exp_code, 'config.yaml'), 'w') as outfile:
         yaml.dump(config_dict, outfile, default_flow_style=False)

@@ -19,9 +19,9 @@ exp_arguments:
   raw_save_dir: heatmaps/heatmap_raw_results
   save_exp_code: HEATMAP_OUTPUT
 heatmap_arguments:
-  alpha: 0.5
+  alpha: 0.4
   binarize: true
-  binary_thresh: 0.5
+  binary_thresh: -1
   blank_canvas: false
   blur: true
   calc_heatmap: false

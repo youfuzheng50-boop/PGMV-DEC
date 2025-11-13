@@ -296,9 +296,7 @@ def process_bag(slide_id, bag_features_list, p_feature_list, bag_label, model_co
 
 # --- 主函数 (重构) ---
 def main(config):
-    """
-    主执行函数，包含配置加载和主循环。
-    """
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"--- 使用设备: {device} ---")
 
@@ -375,8 +373,7 @@ def main(config):
     print(f"总耗时: {end_time - start_time:.2f} 秒")
     print(f"总共收集到 {len(all_selected_samples)} 个样本。")
 
-    # 6. 保存最终结果 (示例)
-    # 您的原始代码没有保存 all_selected_samples，您可以在这里添加保存逻辑
+    # 保存最伪标签样本
     output_dir = config['output_dir']
     os.makedirs(output_dir, exist_ok=True)
     torch.save(
@@ -386,30 +383,23 @@ def main(config):
     print(f"伪标签数据集已保存。")
 
 
+
+
 if __name__ == "__main__":
-    # --- 优化：将所有配置集中在此处 ---
+
     CONFIG = {
         'model_type': 'single_view',  # 'multi_view' 或 'single_view'
 
-        'csv_file': 'heatmaps/process_lists/heatmap_demo_dataset.csv',
+        'csv_file': 'Dataset/oc.csv',
         'label_mapping': {'J': 1, 'N': 2, 'T': 3, 'Z': 4},
+
         'paths': {
-            'v1_proto': "/home/idao/Zyf/models/oc_subtype_classficter/Autoencoder/prototype/liang_e/new_img/new_img_features.pt",
-            'v2_proto': "/home/idao/Zyf/models/oc_subtype_classficter/Autoencoder/prototype/liang_e/new_img/frequency/frequency_features.pt",
-            'v1_features': '/home/idao/Zyf/data/oc_features/FEATURES_DIRECTORY/pt_files',
-            'v2_features': '/home/idao/Zyf/data/oc_features/frequency/pt_files',
+            'v1_proto': "Demonstration /proto.pt",#实域原型
+            'v2_proto': "",#频域原型
+            'v1_features': 'Demonstration ',#实域特征
+            'v2_features': '',#频域特征
 
-            # 'v3_features': '/home/idao/Zyf/data/oc_features/sharpen/pt_files'
         },
-
-        # 'csv_file': 'heatmaps/process_lists/heatmap_demo_dataset.csv',
-        # 'label_mapping': {'HGSC': 1, 'LGSC': 2, 'CC': 3, 'MC': 4, 'EC':5 },
-        # 'paths': {
-        #     'v1_proto': "/home/idao/Zyf/models/oc_subtype_classficter/Autoencoder/prototype/liang_e/new_img/new_img_features.pt",
-        #     'v2_proto': "/home/idao/Zyf/models/oc_subtype_classficter/Autoencoder/prototype/liang_e/new_img/frequency/frequency_features.pt",
-        #     'v1_features': '/home/idao/Zyf/data/UBC-OCEAN/UBC_feature/FEATURES_DIRECTORY/pt_files',
-        #     'v2_features': '/home/idao/Zyf/data/oc_features/frequency/pt_files',
-        # },
 
         'model_config': {
             'hidden_dim': 256,
@@ -418,13 +408,13 @@ if __name__ == "__main__":
         },
 
         'train_config': {
-            'epochs': 30,
+            'epochs': 10,
             'lr': 0.001,
             'scheduler_step': {'step_size': 20, 'gamma': 0.1},
             'sim_save_path': '/home/idao/Zyf/models/PGMV-DEC/heatmaps/sim/'
         },
 
-        'output_dir': './results/'  # 示例：用于保存最终数据集
+        'output_dir': 'Pseudo-label samples'  # 示例：用于保存最终数据集
     }
 
     # 确保保存 sim 分数的目录存在
